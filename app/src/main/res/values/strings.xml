@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">CleanMaster</string>
+    <string name="clean_all_background_process">Clean All Background Process</string>
+    <string name="widget_name">Clean Master</string>
+</resources>
