@@ -1,9 +1,9 @@
-package com.lewis.clean;
+package com.lewis.clear;
 
 
 import android.app.Application;
 
-public class CleanApplication extends Application {
+public class ClearApplication extends Application {
     @Override
     public void onCreate() {
         super.onCreate();

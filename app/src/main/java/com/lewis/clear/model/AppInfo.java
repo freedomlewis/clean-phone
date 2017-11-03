@@ -1,4 +1,4 @@
-package com.lewis.clean.model;
+package com.lewis.clear.model;
 
 
 import android.graphics.drawable.Drawable;

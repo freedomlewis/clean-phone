@@ -1,4 +1,4 @@
-package com.lewis.clean;
+package com.lewis.clear;
 
 import org.junit.Test;
 

@@ -1,4 +1,4 @@
-package com.lewis.clean;
+package com.lewis.clear;
 
 import android.content.Context;
 import android.support.test.InstrumentationRegistry;

@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="com.lewis.clean.CleanActivity">
+    tools:context="com.lewis.clear.ClearActivity">
 
     <TextView
         android:id="@+id/tv_test"
@@ -20,7 +20,6 @@
         android:textColor="@android:color/white"
         android:textStyle="bold"
         android:textSize="18sp"
-        android:onClick="onButtonClicked"
         />
 
 </android.support.constraint.ConstraintLayout>
