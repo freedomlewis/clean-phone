@@ -4,6 +4,9 @@ import android.accessibilityservice.AccessibilityServiceInfo;
 import android.app.ActivityManager;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -39,16 +42,41 @@ public class ClearActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        clearBackgroundApp();
+        clearBackagroundProcess();
+        clearRunningApps();
     }
 
-    private void clearBackgroundApp() {
+    public void clearBackagroundProcess() {
+        final PackageManager pm = this.getPackageManager();
+        List<PackageInfo> apps = pm.getInstalledPackages(PackageManager.GET_META_DATA);
+        for (int i = 0; i < apps.size(); i++) {
+            PackageInfo packageInfo = apps.get(i);
+            killBackgroundProcess(packageInfo);
+        }
+        Toast.makeText(this, "All Cleaned", Toast.LENGTH_SHORT).show();
+    }
+
+    private void killBackgroundProcess(PackageInfo packageInfo) {
+        if (activityManager == null) {
+            activityManager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+        }
+        String packageName = packageInfo.applicationInfo.packageName;
+        if (packageInfo.versionName != null
+                && ((packageInfo.applicationInfo.flags & ApplicationInfo.FLAG_SYSTEM) != 1)
+                && !packageName.equals(this.getPackageName())
+                && !packageName.contains("android")) {
+            activityManager.killBackgroundProcesses(packageName);
+            Log.i(TAG, "kill package name: " + packageName);
+        }
+    }
+
+    private void clearRunningApps() {
         if (!checkEnabledAccessibilityService()) {
             return;
         }
 
-        List<String> backgroundAppPackageNames = queryBackgroundProcesses();
-        for (String packageName : backgroundAppPackageNames) {
+        List<String> runningAppsPackageName = queryRunningAppsPackageName();
+        for (String packageName : runningAppsPackageName) {
             showPackageDetail(packageName);
             Log.i(TAG, "kill package: " + packageName);
         }
@@ -82,7 +110,7 @@ public class ClearActivity extends AppCompatActivity {
         startActivity(intent);
     }
 
-    private List<String> queryBackgroundProcesses() {
+    private List<String> queryRunningAppsPackageName() {
         List<String> packageList = new ArrayList<>();
         List<ActivityManager.RunningAppProcessInfo> appProcesses = activityManager.getRunningAppProcesses();
         for (ActivityManager.RunningAppProcessInfo info : appProcesses) {
