@@ -28,8 +28,10 @@ public class ClearActivity extends AppCompatActivity {
             "eyefilter"//护眼应用
     };
     private static final String SERVICE_NAME = "com.lewis.clear/.ClearService";
+    public static final int CLEAR_GAP = 100;
     private ActivityManager activityManager;
     private AccessibilityManager accessibilityManager;
+    private Handler handler = new Handler();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,6 +44,7 @@ public class ClearActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        ClearService.clearedAppNames.clear();
         clearBackagroundProcess();
         clearRunningApps();
     }
@@ -53,7 +56,6 @@ public class ClearActivity extends AppCompatActivity {
             PackageInfo packageInfo = apps.get(i);
             killBackgroundProcess(packageInfo);
         }
-        Toast.makeText(this, "All Cleaned", Toast.LENGTH_SHORT).show();
     }
 
     private void killBackgroundProcess(PackageInfo packageInfo) {
@@ -76,11 +78,13 @@ public class ClearActivity extends AppCompatActivity {
         }
 
         List<String> runningAppsPackageName = queryRunningAppsPackageName();
+        int clearedApp = 0;
         for (String packageName : runningAppsPackageName) {
-            showPackageDetail(packageName);
+            clearedApp++;
+            showPackageDetail(packageName, clearedApp);
             Log.i(TAG, "kill package: " + packageName);
         }
-        new Handler().postDelayed(new Runnable() {
+        handler.postDelayed(new Runnable() {
             @Override
             public void run() {
                 Toast.makeText(ClearActivity.this, "All cleared", Toast.LENGTH_SHORT).show();
@@ -102,7 +106,7 @@ public class ClearActivity extends AppCompatActivity {
         return false;
     }
 
-    private void showPackageDetail(String packageName) {
+    private void showPackageDetail(final String packageName, int clearedApp) {
         Intent intent = new Intent();
         intent.setAction(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
         Uri uri = Uri.fromParts("package", packageName, null);
