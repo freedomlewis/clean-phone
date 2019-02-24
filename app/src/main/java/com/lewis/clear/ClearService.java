@@ -81,7 +81,6 @@ public class ClearService extends AccessibilityService {
                 Log.i(TAG, "click text: " + text + " class name: " + node.getClassName());
                 node.performAction(AccessibilityNodeInfo.ACTION_CLICK);
             }
-//            node.recycle();
         }
     }
 
