@@ -1,144 +1,126 @@
 package com.lewis.clear
 
-import android.accessibilityservice.AccessibilityServiceInfo
 import android.app.ActivityManager
+import android.app.usage.UsageStats
+import android.app.usage.UsageStatsManager
+import android.app.usage.UsageStatsManager.INTERVAL_BEST
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ApplicationInfo
-import android.content.pm.PackageInfo
-import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Bundle
-import android.os.Handler
 import android.provider.Settings
 import android.util.Log
-import android.view.accessibility.AccessibilityManager
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.recyclerview.widget.LinearLayoutManager
+import com.lewis.clear.model.AppInfo
+import kotlinx.android.synthetic.main.activity_main.*
 import java.util.*
+import kotlin.collections.ArrayList
+
 
 class ClearActivity : AppCompatActivity() {
     private var activityManager: ActivityManager? = null
-    private var accessibilityManager: AccessibilityManager? = null
-    private val handler = Handler()
+    private var usageStatsManager: UsageStatsManager? = null
+    private lateinit var appInfos: List<AppInfo>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        checkUsageStatsPermission()
         activityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-        accessibilityManager = getSystemService(Context.ACCESSIBILITY_SERVICE) as AccessibilityManager
+        initRecycleView()
     }
 
-    override fun onResume() {
-        super.onResume()
-        ClearService.clearedAppNames.clear()
-        clearBackagroundProcess()
-        clearRunningApps()
+    private fun initRecycleView() {
+        appInfos = queryRunningAppInfos()
+        rl_running_apps.layoutManager = LinearLayoutManager(this)
+        rl_running_apps.adapter = RunningAppsAdapter(this, appInfos)
     }
 
-    fun clearBackagroundProcess() {
-        val pm = this.packageManager
-        val apps = pm.getInstalledPackages(PackageManager.GET_META_DATA)
-        for (i in apps.indices) {
-            val packageInfo = apps[i]
-            killBackgroundProcess(packageInfo)
+    private fun checkUsageStatsPermission() {
+        if (!hasPermission()) {
+            val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
+            startActivityForResult(intent, MY_PERMISSIONS_REQUEST_PACKAGE_USAGE_STATS)
         }
     }
 
-    private fun killBackgroundProcess(packageInfo: PackageInfo) {
-        if (activityManager == null) {
-            activityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-        }
-        val packageName = packageInfo.applicationInfo.packageName
-        if (packageInfo.versionName != null
-                && packageInfo.applicationInfo.flags and ApplicationInfo.FLAG_SYSTEM != 1
-                && packageName != this.packageName
-                && !packageName.contains("android")) {
-            activityManager!!.killBackgroundProcesses(packageName)
-            Log.i(TAG, "kill package name: $packageName")
-        }
-    }
-
-    private fun clearRunningApps() {
-        if (!checkEnabledAccessibilityService()) {
-            return
-        }
-
-        val runningAppsPackageName = queryRunningAppsPackageName()
-        var clearedApp = 0
-        for (packageName in runningAppsPackageName) {
-            clearedApp++
-            showPackageDetail(packageName, clearedApp)
-            Log.i(TAG, "kill package: $packageName")
-        }
-        handler.postDelayed({
-            Toast.makeText(this@ClearActivity, "All cleared", Toast.LENGTH_SHORT).show()
-            this@ClearActivity.finish()
-        }, (2 * 1000).toLong())
-    }
-
-    private fun checkEnabledAccessibilityService(): Boolean {
-        val accessibilityServices = accessibilityManager!!.getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_GENERIC)
-        for (info in accessibilityServices) {
-            if (info.id == SERVICE_NAME) {
+    private fun hasPermission(): Boolean {
+        try {
+            usageStatsManager = getSystemService(Context.USAGE_STATS_SERVICE)?.let { it as UsageStatsManager }
+            if (usageStatsManager != null) {
                 return true
             }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
-        val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
-        startActivity(intent)
         return false
     }
 
-    private fun showPackageDetail(packageName: String, clearedApp: Int) {
-        val intent = Intent()
-        intent.action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
-        val uri = Uri.fromParts("package", packageName, null)
-        intent.data = uri
-        startActivity(intent)
-    }
-
-    private fun queryRunningAppsPackageName(): List<String> {
-        val packageList = ArrayList<String>()
-        val appProcesses = activityManager!!.runningAppProcesses
-        for (info in appProcesses) {
-            if (verifyPackageName(info.processName)) continue
-            val packageName = getPackageName(info.processName)
-            if (!packageList.contains(packageName)) {
-                packageList.add(packageName)
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == MY_PERMISSIONS_REQUEST_PACKAGE_USAGE_STATS) {
+            if (!hasPermission()) {
+                Toast.makeText(this, "未能开启查看使用状态的权限", Toast.LENGTH_SHORT).show();
+            } else {
+                appInfos = queryRunningAppInfos()
+                rl_running_apps.adapter?.notifyDataSetChanged()
             }
         }
-        val allServices = activityManager!!.getRunningServices(1000)
-        for (info in allServices) {
-            if (verifyPackageName(info.process)) continue
-            val packageName = getPackageName(info.process)
-            if (!packageList.contains(packageName)) {
-                packageList.add(packageName)
-            }
-        }
-        return packageList
     }
 
-    private fun getPackageName(processName: String): String {
-        return if (processName.contains(":")) processName.split(":".toRegex()).dropLastWhile({ it.isEmpty() }).toTypedArray()[0] else processName
-    }
+    private fun queryRunningAppInfos(): ArrayList<AppInfo> {
+        val appInfos = ArrayList<AppInfo>()
+        val usageStatus = getUsageStatus()
+        for (info in usageStatus) {
+            val packageName = info.packageName
+            if (packageName == this.packageName) {
+                continue
+            }
 
-    private fun verifyPackageName(process: String): Boolean {
-        for (keyName in excludePackages) {
-            if (process.contains(keyName)) {
-                return true
+            if (isSystemApp(packageName)) {
+                continue
+            }
+
+            Log.d("Lewis", packageName)
+
+            try {
+                val name = packageManager.getApplicationLabel(packageManager.getApplicationInfo(packageName, 0)).toString()
+                appInfos.add(AppInfo(name, packageName, packageManager.getApplicationIcon(packageName)))
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
-        return false
+        return appInfos
+    }
+
+    private fun getUsageStatus(): List<UsageStats> {
+        usageStatsManager?.let {
+            val endTime = System.currentTimeMillis()
+            val usageStats = it.queryUsageStats(INTERVAL_BEST, endTime - TIME_RANGE, endTime)
+            usageStats.sortWith(Comparator { o1, o2 -> (o1.lastTimeUsed - o2.lastTimeUsed).toInt() })
+            return usageStats.reversed()
+        }
+        return ArrayList()
+    }
+
+
+    private fun isSystemApp(packageName: String): Boolean {
+        packageName.let {
+            try {
+                val info = packageManager.getApplicationInfo(it, 0)
+                if (it.contains(".oneplus.") || info.flags and ApplicationInfo.FLAG_SYSTEM == 1) {
+                    return true
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+            return false
+        }
     }
 
     companion object {
-        private val TAG = ClearService::class.java.simpleName
-
-        private val excludePackages = arrayOf("com.android", "google", "oneplus", "oppo", "system", "qualcomm", "lewis", //当前应用
-                "iflytek", //讯飞输入法
-                "eyefilter"//护眼应用
-        )
-        private val SERVICE_NAME = "com.lewis.clear/.ClearService"
-        val CLEAR_GAP = 100
+        private const val MY_PERMISSIONS_REQUEST_PACKAGE_USAGE_STATS = 1000
+        private const val TIME_RANGE = 10 * 1000
     }
 }
