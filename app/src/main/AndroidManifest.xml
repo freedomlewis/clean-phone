@@ -9,13 +9,6 @@
         android:name="android.permission.PACKAGE_USAGE_STATS"
         tools:ignore="ProtectedPermissions" />
 
-    <permission
-        android:name="android.permission.FORCE_STOP_PACKAGES"
-        android:permissionGroup="android.permission-group.SYSTEM_TOOLS"
-        android:protectionLevel="signature"
-        android:sharedUserId="android.uid.system"
-        tools:ignore="ProtectedPermissions" />
-
     <application
         android:name="com.lewis.clear.ClearApplication"
         android:allowBackup="true"
