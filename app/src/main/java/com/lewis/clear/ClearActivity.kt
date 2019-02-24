@@ -1,6 +1,7 @@
 package com.lewis.clear
 
 import android.app.ActivityManager
+import android.app.AppOpsManager
 import android.app.usage.UsageStats
 import android.app.usage.UsageStatsManager
 import android.app.usage.UsageStatsManager.INTERVAL_BEST
@@ -21,8 +22,7 @@ import kotlin.collections.ArrayList
 
 class ClearActivity : AppCompatActivity() {
     private var activityManager: ActivityManager? = null
-    private var usageStatsManager: UsageStatsManager? = null
-    private lateinit var appInfos: List<AppInfo>
+    private lateinit var appInfos: MutableList<AppInfo>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -46,15 +46,10 @@ class ClearActivity : AppCompatActivity() {
     }
 
     private fun hasPermission(): Boolean {
-        try {
-            usageStatsManager = getSystemService(Context.USAGE_STATS_SERVICE)?.let { it as UsageStatsManager }
-            if (usageStatsManager != null) {
-                return true
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-        return false
+        val appOps = getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
+        var mode = appOps.checkOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS,
+                android.os.Process.myUid(), packageName)
+        return mode == AppOpsManager.MODE_ALLOWED
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -63,13 +58,14 @@ class ClearActivity : AppCompatActivity() {
             if (!hasPermission()) {
                 Toast.makeText(this, "未能开启查看使用状态的权限", Toast.LENGTH_SHORT).show();
             } else {
-                appInfos = queryRunningAppInfos()
+                appInfos.clear()
+                appInfos.addAll(queryRunningAppInfos())
                 rl_running_apps.adapter?.notifyDataSetChanged()
             }
         }
     }
 
-    private fun queryRunningAppInfos(): ArrayList<AppInfo> {
+    private fun queryRunningAppInfos(): MutableList<AppInfo> {
         val appInfos = ArrayList<AppInfo>()
         val usageStatus = getUsageStatus()
         for (info in usageStatus) {
@@ -95,7 +91,8 @@ class ClearActivity : AppCompatActivity() {
     }
 
     private fun getUsageStatus(): List<UsageStats> {
-        usageStatsManager?.let {
+        getSystemService(Context.USAGE_STATS_SERVICE)?.let {
+            it as UsageStatsManager
             val endTime = System.currentTimeMillis()
             val usageStats = it.queryUsageStats(INTERVAL_BEST, endTime - TIME_RANGE, endTime)
             usageStats.sortWith(Comparator { o1, o2 -> (o1.lastTimeUsed - o2.lastTimeUsed).toInt() })
