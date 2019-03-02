@@ -74,7 +74,7 @@ class ClearActivity : AppCompatActivity() {
                 continue
             }
 
-            if (isSystemApp(packageName)) {
+            if (!isBlackList(packageName) && isSystemApp(packageName)) {
                 continue
             }
 
@@ -88,6 +88,14 @@ class ClearActivity : AppCompatActivity() {
             }
         }
         return appInfos
+    }
+
+    private fun isBlackList(packageName: String): Boolean {
+        return listOf("com.android.chrome","com.google.android.apps.docs", "com.google.android.gms",
+                "com.google.android.gsf", "com.google.android.tts", "com.google.android.apps.tachyon",
+                "com.android.vending", "com.android.providers.downloads",
+                "net.oneplus.weather")
+                .contains(packageName)
     }
 
     private fun getUsageStatus(): List<UsageStats> {
@@ -106,7 +114,8 @@ class ClearActivity : AppCompatActivity() {
         packageName.let {
             try {
                 val info = packageManager.getApplicationInfo(it, 0)
-                if (it.contains(".oneplus.") || info.flags and ApplicationInfo.FLAG_SYSTEM == 1) {
+                if (info.flags and ApplicationInfo.FLAG_SYSTEM == 1) {
+                    Log.d("System App", packageName)
                     return true
                 }
             } catch (e: Exception) {
