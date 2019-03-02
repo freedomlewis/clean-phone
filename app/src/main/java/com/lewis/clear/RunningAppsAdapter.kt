@@ -38,11 +38,7 @@ class RunningAppsAdapter(val context: Context, val appInfos: List<AppInfo>) : Re
     }
 
     private fun showPackageDetail(packageName: String) {
-        val intent = Intent()
-        intent.action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
-        val uri = Uri.fromParts("package", packageName, null)
-        intent.data = uri
-        context.startActivity(intent)
+        ClearActivity.showPackageDetail(context, packageName)
     }
 
 }

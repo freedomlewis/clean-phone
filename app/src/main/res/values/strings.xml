@@ -1,5 +1,5 @@
 <resources>
     <string name="app_name">Clear Phone</string>
-    <string name="clean_all_background_process">Clear running …</string>
+    <string name="clean">Clean</string>
     <string name="widget_name">Clear Phone</string>
 </resources>

@@ -28,6 +28,17 @@
             </intent-filter>
         </activity>
 
+        <service
+            android:name="com.lewis.clear.ClearService"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/clear" />
+        </service>
+
         <receiver
             android:name="com.lewis.clear.ClearWidget"
             android:icon="@drawable/icon_widget"
