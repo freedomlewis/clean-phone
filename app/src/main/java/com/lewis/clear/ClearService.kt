@@ -62,7 +62,7 @@ class ClearService : AccessibilityService() {
                     performGlobalAction(AccessibilityService.GLOBAL_ACTION_BACK)
                     handler.postDelayed({
                         RxBus.post(AppStoppedEvent())
-                    }, 1000)
+                    }, 100)
                 }
             }
 

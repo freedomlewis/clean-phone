@@ -95,6 +95,7 @@ class ClearActivity : AppCompatActivity() {
             showPackageDetail(this, appInfos[processIndex].packageName)
         } else {
             RxBus.post(DisableCleanServiceEvent())
+            finish()
         }
     }
 
