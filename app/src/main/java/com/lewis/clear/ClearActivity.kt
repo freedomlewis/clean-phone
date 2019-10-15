@@ -100,7 +100,7 @@ class ClearActivity : AppCompatActivity() {
     }
 
     private fun initRecycleView() {
-        appInfos = queryRunningAppInfos()
+        appInfos = getRunningAppInfos()
         rl_running_apps.layoutManager = LinearLayoutManager(this)
         rl_running_apps.adapter = RunningAppsAdapter(this, appInfos)
     }
@@ -127,7 +127,7 @@ class ClearActivity : AppCompatActivity() {
                     Toast.makeText(this, "未能开启查看使用状态的权限", Toast.LENGTH_SHORT).show();
                 } else {
                     appInfos.clear()
-                    appInfos.addAll(queryRunningAppInfos())
+                    appInfos.addAll(getRunningAppInfos())
                     rl_running_apps.adapter?.notifyDataSetChanged()
                 }
             }
@@ -145,6 +145,26 @@ class ClearActivity : AppCompatActivity() {
         showPackageDetail(this, appInfos[0].packageName)
     }
 
+    private fun getRunningAppInfos(): MutableList<AppInfo> {
+        val appInfos = ArrayList<AppInfo>()
+        listOf("com.eg.android.AlipayGphone", "com.tencent.mm",
+                "com.tencent.wework", "com.android.chrome",
+                "com.netease.cloudmusic", "com.jingdong.app.mall",
+                "com.android.calendar","net.oneplus.weather",
+                "com.oneplus.camera","com.autonavi.minimap").forEach {
+            try {
+                val name = packageManager.getApplicationLabel(packageManager.getApplicationInfo(it, 0)).toString()
+                appInfos.add(AppInfo(name, it, packageManager.getApplicationIcon(it)))
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+
+        appInfos.addAll(queryRunningAppInfos())
+
+        return appInfos
+    }
+
     private fun queryRunningAppInfos(): MutableList<AppInfo> {
         val appInfos = ArrayList<AppInfo>()
         val usageStatus = getUsageStatus()
@@ -154,7 +174,7 @@ class ClearActivity : AppCompatActivity() {
                 continue
             }
 
-            if (!isBlackList(packageName) && isSystemApp(packageName)) {
+            if (!isWhiteList(packageName) && isSystemApp(packageName)) {
                 continue
             }
 
@@ -170,9 +190,8 @@ class ClearActivity : AppCompatActivity() {
         return appInfos
     }
 
-    private fun isBlackList(packageName: String): Boolean {
-        return listOf("com.android.chrome", "com.google.android.apps.docs", "com.google.android.gms",
-                "com.google.android.gsf", "com.google.android.tts", "com.google.android.apps.tachyon",
+    private fun isWhiteList(packageName: String): Boolean {
+        return listOf("com.google.android.tts", "com.google.android.apps.tachyon",
                 "com.android.vending", "com.android.providers.downloads",
                 "net.oneplus.weather")
                 .contains(packageName)
